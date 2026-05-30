@@ -8,6 +8,11 @@ from data.loader import load_dataset_df
 from agent.tools import list_categories, list_intents, count_rows, get_distribution, get_examples, summarize_category
 
 def main():
+    """Run each of the 6 dataset tools directly to verify correctness.
+
+    Usage: python scripts/test_tools.py
+    Requires the dataset to be downloaded first: python scripts/download_data.py
+    """
     # 1. Load the dataset
     print("Loading dataset...")
     df = load_dataset_df()

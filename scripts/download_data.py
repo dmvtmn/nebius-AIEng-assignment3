@@ -7,8 +7,11 @@ OUT = Path("data/bitext_customer_service.parquet")
 
 
 def main() -> None:
-    """Download the Bitext Customer Service dataset from Hugging Face.
-    Saves it as a parquet file locally for offline access by the tools.
+    """Download the Bitext Customer Service dataset from Hugging Face and save it locally.
+
+    Saves to: data/bitext_customer_service.parquet
+    Only needs to be run once. Re-running will overwrite the existing file.
+    Usage: python scripts/download_data.py
     """
     print("Downloading Bitext Customer Service dataset...")
     ds = load_dataset(
