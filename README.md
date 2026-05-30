@@ -1,6 +1,6 @@
 # Nebius Assignment 3 — Customer Service Data Analyst Agent
 
-**Students:** Daniel Marques Vieira, [Teammate Name]
+**Student:** Daniel Marques Vieira
 
 ## Overview
 
@@ -46,8 +46,8 @@ A LangGraph ReAct agent that answers structured, unstructured, and out-of-scope 
 
 ### 1. Clone & install
 ```bash
-git clone https://github.com/dmvtmn/daniel-marques-nebius-assignment3.git
-cd daniel-marques-nebius-assignment3
+git clone https://github.com/dmvtmn/nebius-AIEng-assignment3.git
+cd nebius-AIEng-assignment3
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
