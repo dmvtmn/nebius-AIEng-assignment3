@@ -20,4 +20,12 @@ def load_dataset_df() -> pd.DataFrame:
             f"Dataset not found at {DATA_PATH}. "
             "Run: python scripts/download_data.py"
         )
-    return pd.read_parquet(DATA_PATH)
+
+    df = pd.read_parquet(DATA_PATH)
+
+    # Ensure required columns are present
+    required_columns = {"instruction", "response", "intent", "category"}
+    if not required_columns.issubset(df.columns):
+        raise ValueError(f"Dataset missing required columns. Found: {df.columns.tolist()}")
+
+    return df

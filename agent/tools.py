@@ -28,6 +28,10 @@ class CategoryFilter(BaseModel):
     category: Optional[str] = Field(None, description="Category name to filter by (case-insensitive). Leave empty for all categories.")
 
 
+class RequiredCategoryFilter(BaseModel):
+    category: str = Field(..., description="Category name to filter by (case-insensitive). Required.")
+
+
 class IntentFilter(BaseModel):
     category: Optional[str] = Field(None, description="Category name to filter by (case-insensitive).")
     intent: Optional[str] = Field(None, description="Intent name to filter by (case-insensitive).")
@@ -78,7 +82,7 @@ def count_rows(category: Optional[str] = None, intent: Optional[str] = None) -> 
     return len(df)
 
 
-@tool(args_schema=CategoryFilter)
+@tool(args_schema=RequiredCategoryFilter)
 def get_distribution(category: str) -> dict[str, int]:
     """Return a {intent: count} distribution for a given category.
     Use when asked about the breakdown or distribution of intents within a category.
@@ -107,7 +111,7 @@ def get_examples(
     return sample[["instruction", "response", "intent", "category"]].to_dict(orient="records")
 
 
-@tool(args_schema=CategoryFilter)
+@tool(args_schema=RequiredCategoryFilter)
 def summarize_category(category: str) -> str:
     """Summarise the types of customer queries and agent responses in a given category.
     Samples up to 30 rows and returns them as a formatted string for the agent to synthesise.

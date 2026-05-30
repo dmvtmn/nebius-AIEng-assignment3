@@ -3,6 +3,6 @@
 __pycache__/
 *.pyc
 *.db
-data/
+data/*.parquet
 *.sqlite
 .langgraph_cache/

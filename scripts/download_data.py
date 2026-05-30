@@ -7,7 +7,12 @@ OUT = Path("data/bitext_customer_service.parquet")
 
 
 def main() -> None:
-    """Download the Bitext Customer Service dataset from Hugging Face."""
+    """Download the Bitext Customer Service dataset from Hugging Face and save it locally.
+
+    Saves to: data/bitext_customer_service.parquet
+    Only needs to be run once. Re-running will overwrite the existing file.
+    Usage: python scripts/download_data.py
+    """
     print("Downloading Bitext Customer Service dataset...")
     ds = load_dataset(
         "bitext/Bitext-customer-support-llm-chatbot-training-dataset",
