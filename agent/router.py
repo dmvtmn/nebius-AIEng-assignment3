@@ -40,7 +40,7 @@ def classify_query(question: str, model: BaseChatModel) -> QueryType:
     Returns:
         One of 'structured', 'unstructured', or 'out_of_scope'.
     """
-    structured_model = model.with_structured_output(RouteDecision)
+    structured_model = model.with_structured_output(RouteDecision)  # Ensure router works correctly
     result: RouteDecision = structured_model.invoke(
         _ROUTER_PROMPT.format(question=question)
     )

@@ -25,6 +25,7 @@ You can only answer questions about this dataset. For out-of-scope questions, po
 
 Available tools let you explore categories, intents, distributions, and examples.
 Always reason step by step, using the minimum number of tool calls needed.
+To count refund requests: first call list_intents to find the exact intent name, then call count_rows with that intent.
 """
 
 
@@ -51,7 +52,8 @@ def router_node(state: AgentState) -> AgentState:
     if last_human is None:
         return {"query_type": "out_of_scope"}
     qt = classify_query(last_human.content, model=_make_llm(ROUTER_MODEL))
-    return {"query_type": qt}
+    print(f"  [dim]Router classification: {qt}[/]")  # Added logging for debugging classification
+    return {"query_type": qt}  # Return routing classification
 
 
 def decline_node(state: AgentState) -> AgentState:
@@ -72,8 +74,8 @@ def route_after_router(
 ) -> Literal["react_agent", "decline_node"]:
     """Decide which branch to run based on query_type."""
     if state.get("query_type") == "out_of_scope":
-        return "decline_node"
-    return "react_agent"
+        return "decline_node"  # Route out_of_scope to decline_node
+    return "react_agent"  # Route others to react_agent
 
 
 def build_graph() -> any:
@@ -105,5 +107,6 @@ def build_graph() -> any:
     builder.add_edge("react_agent", END)
     builder.add_edge("decline_node", END)
 
+    # The thread_id from the config links the CLI session ID to the persisted checkpoint here
     checkpointer = SqliteSaver.from_conn_string("agent_memory.db")
     return builder.compile(checkpointer=checkpointer)
