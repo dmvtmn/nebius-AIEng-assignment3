@@ -52,8 +52,8 @@ def router_node(state: AgentState) -> AgentState:
     if last_human is None:
         return {"query_type": "out_of_scope"}
     qt = classify_query(last_human.content, model=_make_llm(ROUTER_MODEL))
-    print(f"  [dim]Router classification: {qt}[/]")  # Added logging for debugging classification
-    return {"query_type": qt}  # Return routing classification
+    print(f"  Router classification: {qt}")
+    return {"query_type": qt}
 
 
 def decline_node(state: AgentState) -> AgentState:
@@ -74,8 +74,8 @@ def route_after_router(
 ) -> Literal["react_agent", "decline_node"]:
     """Decide which branch to run based on query_type."""
     if state.get("query_type") == "out_of_scope":
-        return "decline_node"  # Route out_of_scope to decline_node
-    return "react_agent"  # Route others to react_agent
+        return "decline_node"
+    return "react_agent"
 
 
 def build_graph() -> any:
