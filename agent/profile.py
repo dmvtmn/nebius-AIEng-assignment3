@@ -36,6 +36,7 @@ def save_profile(session_id: str, profile: dict) -> None:
     path.write_text(json.dumps(profile, indent=2))
 
 def update_profile(session_id: str, last_human: str, last_agent: str, model: BaseChatModel) -> None:
+    """Extract new user facts from the latest exchange and persist the updated profile."""
     current_profile = load_profile(session_id)
 
     prompt = f"""Given this conversation exchange and the existing profile, extract any new facts about the user (name, interests, preferences).

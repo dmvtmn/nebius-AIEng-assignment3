@@ -141,7 +141,7 @@ def get_my_profile(config: RunnableConfig) -> str:
         return "I don't have a profile for you yet."
 
     # Format the profile as a readable string
-    lines = ["[bold cyan]── My notes about you ──[/]"]
+    lines = ["── My notes about you ──"]
     for k, v in profile.items():
         lines.append(f"  {k}: {v}")
     return "\n".join(lines)
