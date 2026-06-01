@@ -46,11 +46,12 @@ def get_distribution(category: str) -> dict[str, int]:
     return _get_distribution.invoke({"category": category})
 
 @mcp.tool()
-def get_examples(intent: str, n: int = 3) -> list[dict]:
-    """Return N example rows (instruction + response) from the dataset.
-    Filter by intent. Returns at most 20 rows.
+def get_examples(intent: str, n: int = 3, category: Optional[str] = None) -> list[dict]:
+    """Return N example rows (instruction + response) filtered by intent and optionally category.
+    Use intent='get_refund' to sample refund examples. Add category='REFUND' to narrow further.
+    Returns at most 20 rows.
     """
-    return _get_examples.invoke({"intent": intent, "n": n})
+    return _get_examples.invoke({"intent": intent, "n": n, "category": category})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

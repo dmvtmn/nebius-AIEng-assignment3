@@ -138,12 +138,13 @@ if __name__ == "__main__":
 {
   "mcpServers": {
     "bitext-analyst": {
-      "command": "python",
-      "args": ["/path/to/nebius-AIEng-assignment3/mcp_server.py"]
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/nebius-AIEng-assignment3", "python", "mcp_server.py"]
     }
   }
 }
 ```
+*Note: Replace `/path/to/nebius-AIEng-assignment3` with the absolute path to your cloned repo.*
 
 ## User Profile
 The agent extracts and persists facts about users in a user profile, separate from standard message history.
