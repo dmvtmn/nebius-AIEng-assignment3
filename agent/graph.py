@@ -8,11 +8,13 @@ from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import create_react_agent
 
 from agent.tools import ALL_TOOLS
 from agent.router import classify_query, QueryType
+from agent.profile import update_profile
 
 load_dotenv()
 
@@ -56,6 +58,26 @@ def router_node(state: AgentState) -> AgentState:
     return {"query_type": qt}
 
 
+def profile_update_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    """Update user profile using the last Human and AI messages."""
+    session_id = config["configurable"]["thread_id"]
+
+    last_human = next(
+        (m.content for m in reversed(state["messages"]) if m.type == "human"), ""
+    )
+    last_agent = next(
+        (m.content for m in reversed(state["messages"]) if m.type == "ai"), ""
+    )
+
+    update_profile(
+        session_id=session_id,
+        last_human=last_human,
+        last_agent=last_agent,
+        model=_make_llm(ROUTER_MODEL)
+    )
+    return state
+
+
 def decline_node(state: AgentState) -> AgentState:
     """Return a polite refusal for out-of-scope queries."""
     from langchain_core.messages import AIMessage
@@ -90,12 +112,13 @@ def build_graph() -> any:
     react = create_react_agent(
         llm,
         tools=ALL_TOOLS,
-        state_modifier=SystemMessage(content=SYSTEM_PROMPT),
+        prompt=SYSTEM_PROMPT,
     )
 
     builder = StateGraph(AgentState)
     builder.add_node("router_node", router_node)
     builder.add_node("react_agent", react)
+    builder.add_node("profile_update_node", profile_update_node)
     builder.add_node("decline_node", decline_node)
 
     builder.add_edge(START, "router_node")
@@ -104,9 +127,16 @@ def build_graph() -> any:
         route_after_router,
         {"react_agent": "react_agent", "decline_node": "decline_node"},
     )
-    builder.add_edge("react_agent", END)
+    builder.add_edge("react_agent", "profile_update_node")
+    builder.add_edge("profile_update_node", END)
     builder.add_edge("decline_node", END)
 
     # The thread_id from the config links the CLI session ID to the persisted checkpoint here
     checkpointer = SqliteSaver.from_conn_string("agent_memory.db")
-    return builder.compile(checkpointer=checkpointer)
+    # Using the context manager returned from from_conn_string which evaluates to a checkpointer.
+    # However since we need to return it, we should ensure the DB connection stays open for the graph.
+    # The SqliteSaver from_conn_string actually returns a context manager that we shouldn't use directly.
+    import sqlite3
+    conn = sqlite3.connect("agent_memory.db", check_same_thread=False)
+    saver = SqliteSaver(conn)
+    return builder.compile(checkpointer=saver)

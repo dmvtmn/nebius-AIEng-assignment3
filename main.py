@@ -17,6 +17,7 @@ def run_cli(session_id: str) -> None:
             the persisted conversation history from the SQLite checkpointer.
     """
     app = build_graph()
+
     config = {
         "configurable": {"thread_id": session_id},
         "recursion_limit": 25,  # 12 agent steps ≈ 25 graph nodes (each step = ~2 nodes)

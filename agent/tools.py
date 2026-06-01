@@ -5,9 +5,11 @@ from typing import Optional
 
 import pandas as pd
 from langchain_core.tools import tool
+from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from data.loader import load_dataset_df
+from agent.profile import load_profile
 
 _df: Optional[pd.DataFrame] = None
 
@@ -128,6 +130,23 @@ def summarize_category(category: str) -> str:
     return f"Sample from '{category}' ({len(filtered)} total rows):\n\n" + "\n".join(lines)
 
 
+@tool
+def get_my_profile(config: RunnableConfig) -> str:
+    """Return the user's current profile.
+    Use this when the user asks "what do you remember about me?" or similar queries.
+    """
+    session_id = config["configurable"]["thread_id"]
+    profile = load_profile(session_id)
+    if not profile:
+        return "I don't have a profile for you yet."
+
+    # Format the profile as a readable string
+    lines = ["── My notes about you ──"]
+    for k, v in profile.items():
+        lines.append(f"  {k}: {v}")
+    return "\n".join(lines)
+
+
 ALL_TOOLS = [
     list_categories,
     list_intents,
@@ -135,4 +154,5 @@ ALL_TOOLS = [
     get_distribution,
     get_examples,
     summarize_category,
+    get_my_profile,
 ]
