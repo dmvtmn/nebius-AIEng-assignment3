@@ -146,6 +146,19 @@ if __name__ == "__main__":
 ```
 *Note: Replace `/path/to/nebius-AIEng-assignment3` with the absolute path to your cloned repo.*
 
+## Bonus B — Query Recommender
+The agent includes a query recommender system that suggests follow-up queries based on conversation history and user profile.
+
+Example flow:
+User:  "What should I query next?"
+Agent: "Based on your interest in refund data, you might want to see the distribution of intents in the REFUND category."
+User:  "I'd rather see examples instead."
+Agent: "Then I'd suggest: show 5 examples from the REFUND category. Should I go ahead?"
+User:  "Yes, do it."
+Agent: [executes show_examples and displays results]
+
+Note: The agent uses conversation history + user profile to generate relevant suggestions. The suggestion must be an executable query string, generated using the `ROUTER_MODEL` without calling any dataset tools directly.
+
 ## User Profile
 The agent extracts and persists facts about users in a user profile, separate from standard message history.
 

@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
 
-QueryType = Literal["structured", "unstructured", "out_of_scope"]
+QueryType = Literal["structured", "unstructured", "out_of_scope", "recommendation"]
 
 
 class RouteDecision(BaseModel):
@@ -22,7 +22,15 @@ You classify user questions about the Bitext Customer Service dataset.
 Categories:
 - structured: has a concrete data-driven answer (counts, distributions, examples, category/intent lists)
 - unstructured: requires summarization or qualitative analysis of the data
+- recommendation: user is asking what to query next
 - out_of_scope: unrelated to the dataset (general knowledge, coding help, creative writing, etc.)
+
+Examples:
+- "what should I query next?" -> recommendation
+- "suggest something interesting" -> recommendation
+- "what else can I explore?" -> recommendation
+- "yes, do it" -> structured
+- "show me refund examples" -> structured
 
 User question: {question}
 
