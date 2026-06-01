@@ -136,7 +136,7 @@ def confirmation_check_node(state: AgentState) -> dict:
             "messages": [HumanMessage(content=state["pending_suggestion"])]
         }
     else:
-        return {}
+        return {"pending_suggestion": state["pending_suggestion"]}
 
 def decline_node(state: AgentState) -> AgentState:
     """Return a polite refusal for out-of-scope queries."""

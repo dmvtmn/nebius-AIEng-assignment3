@@ -150,12 +150,12 @@ if __name__ == "__main__":
 The agent includes a query recommender system that suggests follow-up queries based on conversation history and user profile.
 
 Example flow:
-User: "what should I query next?"
-Agent: Based on your recent interest in [topic], I'd suggest:
-**[suggestion]**
-Should I go ahead, or would you like to refine it?
-User: "yes"
-Agent: [executes the query]
+User:  "What should I query next?"
+Agent: "Based on your interest in refund data, you might want to see the distribution of intents in the REFUND category."
+User:  "I'd rather see examples instead."
+Agent: "Then I'd suggest: show 5 examples from the REFUND category. Should I go ahead?"
+User:  "Yes, do it."
+Agent: [executes show_examples and displays results]
 
 Note: The agent uses conversation history + user profile to generate relevant suggestions. The suggestion must be an executable query string, generated using the `ROUTER_MODEL` without calling any dataset tools directly.
 
