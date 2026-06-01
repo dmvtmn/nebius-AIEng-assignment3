@@ -44,6 +44,7 @@ class AgentState(MessagesState):
     """Extended graph state that also carries routing result and user profile."""
     query_type: QueryType | None  # set by router_node
     user_profile: str  # persisted distilled facts about the user
+    pending_suggestion: str | None
 
 
 def router_node(state: AgentState) -> AgentState:
@@ -78,6 +79,65 @@ def profile_update_node(state: AgentState, config: RunnableConfig) -> AgentState
     return state
 
 
+def recommender_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    """Generate a specific query suggestion based on conversation history and user profile."""
+    from langchain_core.messages import AIMessage
+    from agent.profile import load_profile
+
+    session_id = config["configurable"]["thread_id"]
+    profile = load_profile(session_id)
+
+    # Get last 6 messages
+    recent_messages = state["messages"][-6:]
+    history_text = "\n".join([f"{m.type}: {m.content}" for m in recent_messages])
+
+    prompt = f"""Based on this conversation history and user profile, suggest ONE specific follow-up query about the Bitext dataset. Be specific — name the category or intent. Format your response as:
+SUGGESTION: <the suggested query text>
+REASON: <one sentence why>
+
+Profile: {profile}
+
+History:
+{history_text}"""
+
+    model = _make_llm(ROUTER_MODEL)
+    response = model.invoke(prompt)
+
+    suggestion = ""
+    reason = ""
+    for line in response.content.split('\n'):
+        if line.startswith('SUGGESTION:'):
+            suggestion = line.replace('SUGGESTION:', '').strip()
+        elif line.startswith('REASON:'):
+            reason = line.replace('REASON:', '').strip()
+
+    return {
+        "pending_suggestion": suggestion,
+        "messages": [
+            AIMessage(
+                content=f"Based on your recent interest, I'd suggest:\n**{suggestion}**\nShould I go ahead, or would you like to refine it?"
+            )
+        ]
+    }
+
+def confirmation_check_node(state: AgentState) -> dict:
+    """Check if the user confirmed or refined the suggestion."""
+    from langchain_core.messages import HumanMessage
+    import re
+
+    last_message = state["messages"][-1].content.lower()
+    confirm_words = [r"\byes\b", r"\bgo\b", r"\bdo it\b", r"\bsure\b", r"\bproceed\b", r"\bok\b"]
+
+    is_confirmed = any(re.search(word, last_message) for word in confirm_words)
+
+    if is_confirmed:
+        return {
+            "pending_suggestion": None,
+            "messages": [HumanMessage(content=state["pending_suggestion"])]
+        }
+    else:
+        return {}
+
 def decline_node(state: AgentState) -> AgentState:
     """Return a polite refusal for out-of-scope queries."""
     from langchain_core.messages import AIMessage
@@ -91,14 +151,27 @@ def decline_node(state: AgentState) -> AgentState:
     }
 
 
+def route_start(state: AgentState) -> Literal["confirmation_check_node", "router_node"]:
+    """Decide where to start based on pending_suggestion."""
+    if state.get("pending_suggestion") is not None:
+        return "confirmation_check_node"
+    return "router_node"
+
 def route_after_router(
     state: AgentState,
-) -> Literal["react_agent", "decline_node"]:
+) -> Literal["react_agent", "decline_node", "recommender_node"]:
     """Decide which branch to run based on query_type."""
     if state.get("query_type") == "out_of_scope":
         return "decline_node"
+    elif state.get("query_type") == "recommendation":
+        return "recommender_node"
     return "react_agent"
 
+def route_after_confirmation(state: AgentState) -> Literal["react_agent", "recommender_node"]:
+    """Route based on whether the suggestion was confirmed."""
+    if state.get("pending_suggestion") is None:
+        return "react_agent"
+    return "recommender_node"
 
 def build_graph() -> any:
     """Compile and return the LangGraph application.
@@ -121,12 +194,27 @@ def build_graph() -> any:
     builder.add_node("profile_update_node", profile_update_node)
     builder.add_node("decline_node", decline_node)
 
-    builder.add_edge(START, "router_node")
+    builder.add_node("recommender_node", recommender_node)
+    builder.add_node("confirmation_check_node", confirmation_check_node)
+
+    builder.add_conditional_edges(
+        START,
+        route_start,
+        {"confirmation_check_node": "confirmation_check_node", "router_node": "router_node"},
+    )
     builder.add_conditional_edges(
         "router_node",
         route_after_router,
-        {"react_agent": "react_agent", "decline_node": "decline_node"},
+        {"react_agent": "react_agent", "decline_node": "decline_node", "recommender_node": "recommender_node"},
     )
+
+    builder.add_conditional_edges(
+        "confirmation_check_node",
+        route_after_confirmation,
+        {"react_agent": "react_agent", "recommender_node": "recommender_node"},
+    )
+
+    builder.add_edge("recommender_node", END)
     builder.add_edge("react_agent", "profile_update_node")
     builder.add_edge("profile_update_node", END)
     builder.add_edge("decline_node", END)
