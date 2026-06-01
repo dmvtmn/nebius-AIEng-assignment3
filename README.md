@@ -96,6 +96,18 @@ async def main():
             print(result)
 ```
 
+## User Profile
+The agent extracts and persists facts about users in a user profile, separate from standard message history.
+
+- **What it stores**: Distilled facts like name, frequent topics, and preferences. It does not store full message history.
+- **Where it lives**: `profiles/{session_id}.json`
+- **How to test it**:
+    1. `python main.py --session me`
+    2. Say "My name is Daniel and I'm mostly interested in refund data"
+    3. Ask "What do you remember about me?"
+    4. Exit and restart: `python main.py --session me`
+    5. Ask "What do you remember about me?" again — profile persists
+
 ## Debugging
 Enable verbose logging:
 ```bash

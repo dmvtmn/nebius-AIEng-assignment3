@@ -8,11 +8,13 @@ from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import create_react_agent
 
 from agent.tools import ALL_TOOLS
 from agent.router import classify_query, QueryType
+from agent.profile import update_profile
 
 load_dotenv()
 
@@ -56,6 +58,26 @@ def router_node(state: AgentState) -> AgentState:
     return {"query_type": qt}
 
 
+def profile_update_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    """Update user profile using the last Human and AI messages."""
+    session_id = config["configurable"]["thread_id"]
+
+    last_human = next(
+        (m.content for m in reversed(state["messages"]) if m.type == "human"), ""
+    )
+    last_agent = next(
+        (m.content for m in reversed(state["messages"]) if m.type == "ai"), ""
+    )
+
+    update_profile(
+        session_id=session_id,
+        last_human=last_human,
+        last_agent=last_agent,
+        model=_make_llm(ROUTER_MODEL)
+    )
+    return state
+
+
 def decline_node(state: AgentState) -> AgentState:
     """Return a polite refusal for out-of-scope queries."""
     from langchain_core.messages import AIMessage
@@ -78,24 +100,30 @@ def route_after_router(
     return "react_agent"
 
 
-def build_graph() -> any:
+def build_graph(system_prompt: str | None = None) -> any:
     """Compile and return the LangGraph application.
+
+    Args:
+        system_prompt: Optional custom system prompt string. If None, uses default.
 
     Returns:
         A compiled LangGraph `CompiledGraph` with SqliteSaver checkpointing.
     """
     llm = _make_llm(AGENT_MODEL)
 
+    prompt_to_use = system_prompt if system_prompt is not None else SYSTEM_PROMPT
+
     # Inner ReAct agent (handles both structured + unstructured branches)
     react = create_react_agent(
         llm,
         tools=ALL_TOOLS,
-        state_modifier=SystemMessage(content=SYSTEM_PROMPT),
+        state_modifier=SystemMessage(content=prompt_to_use),
     )
 
     builder = StateGraph(AgentState)
     builder.add_node("router_node", router_node)
     builder.add_node("react_agent", react)
+    builder.add_node("profile_update_node", profile_update_node)
     builder.add_node("decline_node", decline_node)
 
     builder.add_edge(START, "router_node")
@@ -104,7 +132,8 @@ def build_graph() -> any:
         route_after_router,
         {"react_agent": "react_agent", "decline_node": "decline_node"},
     )
-    builder.add_edge("react_agent", END)
+    builder.add_edge("react_agent", "profile_update_node")
+    builder.add_edge("profile_update_node", END)
     builder.add_edge("decline_node", END)
 
     # The thread_id from the config links the CLI session ID to the persisted checkpoint here
