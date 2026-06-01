@@ -1,3 +1,4 @@
+"""User profile management — distilled facts persisted per session."""
 from __future__ import annotations
 
 import json
@@ -15,6 +16,10 @@ class UserProfile(BaseModel):
     last_seen: str = Field(default="")
 
 def load_profile(session_id: str) -> dict:
+    """Load the user profile for a given session ID from disk.
+
+    Returns an empty dict if no profile exists yet.
+    """
     PROFILES_DIR.mkdir(exist_ok=True)
     path = PROFILES_DIR / f"{session_id}.json"
     if path.exists():
@@ -25,6 +30,7 @@ def load_profile(session_id: str) -> dict:
     return {}
 
 def save_profile(session_id: str, profile: dict) -> None:
+    """Persist the user profile dict to disk for the given session ID."""
     PROFILES_DIR.mkdir(exist_ok=True)
     path = PROFILES_DIR / f"{session_id}.json"
     path.write_text(json.dumps(profile, indent=2))

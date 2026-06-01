@@ -100,24 +100,19 @@ def route_after_router(
     return "react_agent"
 
 
-def build_graph(system_prompt: str | None = None) -> any:
+def build_graph() -> any:
     """Compile and return the LangGraph application.
-
-    Args:
-        system_prompt: Optional custom system prompt string. If None, uses default.
 
     Returns:
         A compiled LangGraph `CompiledGraph` with SqliteSaver checkpointing.
     """
     llm = _make_llm(AGENT_MODEL)
 
-    prompt_to_use = system_prompt if system_prompt is not None else SYSTEM_PROMPT
-
     # Inner ReAct agent (handles both structured + unstructured branches)
     react = create_react_agent(
         llm,
         tools=ALL_TOOLS,
-        state_modifier=SystemMessage(content=prompt_to_use),
+        prompt=SYSTEM_PROMPT,
     )
 
     builder = StateGraph(AgentState)
@@ -138,4 +133,10 @@ def build_graph(system_prompt: str | None = None) -> any:
 
     # The thread_id from the config links the CLI session ID to the persisted checkpoint here
     checkpointer = SqliteSaver.from_conn_string("agent_memory.db")
-    return builder.compile(checkpointer=checkpointer)
+    # Using the context manager returned from from_conn_string which evaluates to a checkpointer.
+    # However since we need to return it, we should ensure the DB connection stays open for the graph.
+    # The SqliteSaver from_conn_string actually returns a context manager that we shouldn't use directly.
+    import sqlite3
+    conn = sqlite3.connect("agent_memory.db", check_same_thread=False)
+    saver = SqliteSaver(conn)
+    return builder.compile(checkpointer=saver)

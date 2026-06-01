@@ -1,8 +1,6 @@
 """CLI entry point for the Customer Service Data Analyst Agent."""
 import argparse
-import json
-from agent.graph import build_graph, SYSTEM_PROMPT
-from agent.profile import load_profile
+from agent.graph import build_graph
 from langchain_core.messages import HumanMessage
 from rich.console import Console
 from rich.markdown import Markdown
@@ -18,10 +16,7 @@ def run_cli(session_id: str) -> None:
         session_id: Unique session identifier. Restoring the same ID resumes
             the persisted conversation history from the SQLite checkpointer.
     """
-    # Load profile and inject into system prompt
-    profile = load_profile(session_id)
-    system_prompt = SYSTEM_PROMPT + f"\n\nCurrent user profile:\n{json.dumps(profile, indent=2)}"
-    app = build_graph(system_prompt=system_prompt)
+    app = build_graph()
 
     config = {
         "configurable": {"thread_id": session_id},
