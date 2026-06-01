@@ -74,13 +74,17 @@ python main.py --session my_session
 
 The CLI prints each reasoning step (tool calls + observations) before the final answer.
 
-## Running the MCP Server
+## MCP Server
+
+### Starting the server
 ```bash
-python mcp_server.py
+python mcp_server.py          # stdio mode
+python mcp_server.py --sse    # SSE mode on port 8000
 ```
 
-### Connecting a client to a tool
+### Connecting a client (stdio)
 ```python
+import asyncio
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -92,9 +96,55 @@ async def main():
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
+
+            # List tools
+            tools = await session.list_tools()
+            print("Available tools:", [t.name for t in tools.tools])
+
+            # Call tool
             result = await session.call_tool("list_categories", {})
-            print(result)
+            print("Categories:", result.content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
+
+### Connecting via SSE
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.sse import sse_client
+
+async def main():
+    # Connect to the SSE endpoint
+    async with sse_client("http://localhost:8000/sse") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # List tools
+            tools = await session.list_tools()
+            print("Available tools:", [t.name for t in tools.tools])
+
+            # Call tool
+            result = await session.call_tool("list_categories", {})
+            print("Categories:", result.content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Claude Desktop config
+```json
+{
+  "mcpServers": {
+    "bitext-analyst": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/nebius-AIEng-assignment3", "python", "mcp_server.py"]
+    }
+  }
+}
+```
+*Note: Replace `/path/to/nebius-AIEng-assignment3` with the absolute path to your cloned repo.*
 
 ## User Profile
 The agent extracts and persists facts about users in a user profile, separate from standard message history.
