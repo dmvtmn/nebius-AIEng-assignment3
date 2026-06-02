@@ -14,13 +14,13 @@ A LangGraph ReAct agent that answers structured, unstructured, and out-of-scope 
 │                                                 │
 │  user input → [router_node]                     │
 │                    │                            │
-│         ┌──────────┼──────────┐                 │
-│         ▼          ▼          ▼                 │
-│   structured  unstructured  out-of-scope        │
-│         │          │          │                 │
-│         └──────────┘          │                 │
-│                │              ▼                 │
-│         [react_agent]   [decline_node]          │
+│         ┌──────────┼──────────┬──────────┐      │
+│         ▼          ▼          ▼          ▼      │
+│   structured  unstructured  out-of-scope profile│
+│         │          │          │          │      │
+│         └──────────┘          │          │      │
+│                │              ▼          ▼      │
+│         [react_agent]   [decline_node] [profile_query_node] │
 │                │                                │
 │       [SqliteSaver checkpoint]                  │
 └─────────────────────────────────────────────────┘

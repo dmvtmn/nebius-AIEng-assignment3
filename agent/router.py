@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
 
-QueryType = Literal["structured", "unstructured", "out_of_scope", "recommendation"]
+QueryType = Literal["structured", "unstructured", "out_of_scope", "recommendation", "profile"]
 
 
 class RouteDecision(BaseModel):
@@ -24,6 +24,7 @@ Categories:
 - unstructured: requires summarization or qualitative analysis of the data
 - recommendation: user is asking what to query next
 - out_of_scope: unrelated to the dataset (general knowledge, coding help, creative writing, etc.)
+- profile: user is sharing personal info OR asking what the agent remembers about them
 
 Examples:
 - "what should I query next?" -> recommendation
@@ -31,6 +32,11 @@ Examples:
 - "what else can I explore?" -> recommendation
 - "yes, do it" -> structured
 - "show me refund examples" -> structured
+- "My name is Daniel" -> profile
+- "I mostly care about refunds" -> profile
+- "What do you know about me?" -> profile
+- "What do you remember about me?" -> profile
+- "I prefer detailed answers" -> profile
 
 User question: {question}
 
