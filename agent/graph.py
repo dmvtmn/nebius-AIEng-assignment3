@@ -157,14 +157,55 @@ def route_start(state: AgentState) -> Literal["confirmation_check_node", "router
         return "confirmation_check_node"
     return "router_node"
 
+def profile_query_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    """Handle profile queries (statements or questions)."""
+    from langchain_core.messages import AIMessage
+    from agent.profile import load_profile
+
+    session_id = config["configurable"]["thread_id"]
+    last_message = state["messages"][-1].content.lower()
+
+    # Determine if it's a question
+    is_question = "?" in last_message or any(q in last_message for q in ["what do you", "do you know", "do you remember", "tell me about me"])
+
+    if is_question:
+        profile = load_profile(session_id)
+        if not profile or (not profile.get("name") and not profile.get("frequent_topics") and not profile.get("preferences")):
+            return {"messages": [AIMessage(content="I don't know anything about you yet.")]}
+
+        # Format the profile nicely
+        parts = []
+        if profile.get("name"):
+            parts.append(f"Your name is {profile['name']}.")
+        if profile.get("frequent_topics"):
+            parts.append(f"You frequently ask about: {', '.join(profile['frequent_topics'])}.")
+        if profile.get("preferences"):
+            parts.append(f"Your preferences are: {', '.join(profile['preferences'])}.")
+
+        return {"messages": [AIMessage(content="\n".join(parts))]}
+    else:
+        # It's a statement, we run the update logic and acknowledge
+        last_human = next((m.content for m in reversed(state["messages"]) if m.type == "human"), "")
+        last_agent = next((m.content for m in reversed(state["messages"]) if m.type == "ai"), "")
+
+        update_profile(
+            session_id=session_id,
+            last_human=last_human,
+            last_agent=last_agent,
+            model=_make_llm(ROUTER_MODEL)
+        )
+        return {"messages": [AIMessage(content="Got it, I'll remember that.")]}
+
 def route_after_router(
     state: AgentState,
-) -> Literal["react_agent", "decline_node", "recommender_node"]:
+) -> Literal["react_agent", "decline_node", "recommender_node", "profile_query_node"]:
     """Decide which branch to run based on query_type."""
     if state.get("query_type") == "out_of_scope":
         return "decline_node"
     elif state.get("query_type") == "recommendation":
         return "recommender_node"
+    elif state.get("query_type") == "profile":
+        return "profile_query_node"
     return "react_agent"
 
 def route_after_confirmation(state: AgentState) -> Literal["react_agent", "recommender_node"]:
@@ -196,6 +237,7 @@ def build_graph() -> any:
 
     builder.add_node("recommender_node", recommender_node)
     builder.add_node("confirmation_check_node", confirmation_check_node)
+    builder.add_node("profile_query_node", profile_query_node)
 
     builder.add_conditional_edges(
         START,
@@ -205,7 +247,12 @@ def build_graph() -> any:
     builder.add_conditional_edges(
         "router_node",
         route_after_router,
-        {"react_agent": "react_agent", "decline_node": "decline_node", "recommender_node": "recommender_node"},
+        {
+            "react_agent": "react_agent",
+            "decline_node": "decline_node",
+            "recommender_node": "recommender_node",
+            "profile_query_node": "profile_query_node",
+        },
     )
 
     builder.add_conditional_edges(
@@ -217,6 +264,7 @@ def build_graph() -> any:
     builder.add_edge("recommender_node", END)
     builder.add_edge("react_agent", "profile_update_node")
     builder.add_edge("profile_update_node", END)
+    builder.add_edge("profile_query_node", END)
     builder.add_edge("decline_node", END)
 
     # The thread_id from the config links the CLI session ID to the persisted checkpoint here
