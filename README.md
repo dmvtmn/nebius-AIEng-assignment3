@@ -27,10 +27,8 @@ A LangGraph ReAct agent that answers structured, unstructured, and out-of-scope 
 ```
 
 ### Model Choice
-- **Main agent:** `TODO: pick from Nebius Token Factory` — used for reasoning, tool-calling, and summarization.
-- **Router:** `TODO: smaller/cheaper model` — lightweight classifier for structured / unstructured / out-of-scope.
-
-> Justify your choices here once decided.
+- **Router:** `Qwen/Qwen3-32B` — a Mixture-of-Experts model (~3B active parameters despite 32B total) used for the lightweight classification task (5 query types). Fast, cheap, and excellent at structured output classification.
+- **Main agent:** `meta-llama/Llama-3.3-70B-Instruct` — used for multi-step reasoning, tool-calling, and summarization. The most capable Llama model available on Nebius Token Factory, well-tested with LangGraph's tool-calling interface, and cost-effective at $0.13/1M input tokens.
 
 ### Tools
 | Tool | Description |
@@ -55,7 +53,8 @@ pip install -r requirements.txt
 ### 2. Environment variables
 ```bash
 cp .env.example .env
-# Fill in NEBIUS_API_KEY
+# Fill in NEBIUS_API_KEY — get it from studio.nebius.com
+# Model names are pre-filled with the recommended Nebius Token Factory models
 ```
 
 ### 3. Download dataset
